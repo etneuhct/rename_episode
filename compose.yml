@@ -1,0 +1,34 @@
+networks:
+  traefik_default:
+    external: true
+
+volumes:
+  episode_data:
+    external: true
+
+
+services:
+  rename-episode-api:
+    container_name: rename-episode-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    labels:
+      - traefik.enable=true
+      - traefik.http.middlewares.to-https.redirectscheme.scheme=websecure
+      - traefik.http.routers.rename-episode-api.entrypoints=websecure
+      - traefik.http.routers.rename-episode-api.rule=Host(`api.${DOMAIN_NAME}`)
+      - traefik.http.services.rename-episode-api.loadbalancer.server.port=8000
+      - traefik.http.routers.rename-episode-api-http.entrypoints=web
+      - traefik.http.routers.rename-episode-api-http.middlewares=to-https
+      - traefik.http.routers.rename-episode-api.service=rename-episode-api
+      - traefik.http.routers.rename-episode-api.tls=true
+      - traefik.http.routers.rename-episode-api.tls.certresolver=letsencrypt
+    pull_policy: build
+    volumes:
+      - episode_data:/app/data
+    restart: unless-stopped
+    networks:
+      - traefik_default
+    env_file:
+      - stack.env
